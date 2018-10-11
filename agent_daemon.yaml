@@ -43,7 +43,7 @@ spec:
           - name: DD_LEADER_ELECTION
             value: "true"
           - name: DD_TAGS
-            value: "owner:ziquan"
+            value: "owner:workshop"
           - name: DD_LOGS_ENABLED
             value: "true"
           - name: DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL
