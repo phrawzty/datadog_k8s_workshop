@@ -1,38 +1,261 @@
+# Datadog Summit London 2019 Kubernetes Workshop
 
-# Intro
+Welcome! In this workshop we're going to learn about Kubernetes.
 
-This Workshop assumes both Docker and [minikube](https://github.com/kubernetes/minikube/blob/v0.28.2/README.md) are installed (along with kubectl + kubernetes), and has only been tested in a Mac environment.
+## Pre-requisites
 
-In addition, you will need a Datadog Account and have access to an API key -- Start a Free Trial [Here](https://www.datadoghq.com/lpg6/)!
+* MacOS (with [brew](https://brew.sh/) _or_ a common Linux distribution (64-bit)
+* [VirtualBox](https://www.virtualbox.org/) preferred; other virtualisation techniques are possible but are **unsupported**.
+* [Docker](https://www.docker.com/install/) (CE is fine)
+* `git`
 
-This repo showcases a minikube-based path to deploying a simple flask app container that returns some sample text contained in a separate postgres container. 
+All of the above must have been recently updated. 👍
 
-The goal of this repo is to demonstrate the steps involved in installing a [Datadog](datadoghq.com/) agent to demonstrate the product's [Infrastructure Monitoring](https://www.datadoghq.com/server-monitoring/), [Application Performance Monitoring](https://www.datadoghq.com/blog/announcing-apm/), [Live Process/Container Monitoring](https://www.datadoghq.com/blog/live-process-monitoring/), and [Log Monitoring Capabilities](https://www.datadoghq.com/blog/announcing-logs/) in a Kubernetes x Docker based environment.
+### Datadog account
 
-This repo makes no accommodations for proxy scenarios and does not fullyaccommodate situations where machines are unable to pull from the internet to download packages
+In order to enjoy the full scope of this workshop, you'll want to [sign up for a free trial Datadog account](https://www.datadoghq.com/lpg6/); you probably don't want to use a pre-existing account, as we'll be playing around with lots of dummy data.
 
-# Steps to Success
+## Overview
 
-The gist of the setup portion is:
-1. Spin up Minikube Instance
-2. Load Dockerfiles into images
-3. Deploy!
+In the first part of the workshop we'll install [Minikube](https://github.com/kubernetes/minikube).
+> Minikube is a tool that makes it easy to run Kubernetes locally. Minikube runs a single-node Kubernetes cluster inside a VM on your laptop for users looking to try out Kubernetes or develop with it day-to-day.
 
-## Set up 
-Start Minikube instance 
+In the second part of the workshop we'll deploy a basic application stack via Kubernetes. We'll also see how to deploy the Datadog Agent and explore some of the features of Datadog itself.
+
+# Part one: Minikube and friends
+
+The goal here is to get a functioning Kubernetes cluster up and running as efficiently as possible. We'll explore Minikube itself, take a first look at the Kubernetes CLI tool, and learn some key terminology and concepts.
+
+## Install `minikube` and `kubectl`
+
+(The following instructions are adapted from the [Minikube README](https://github.com/kubernetes/minikube/blob/master/README.md).)
+
+Both the Minikube (`minikube`) and the Kubernetes (`kubectl`) binaries are self-contained and of moderate size.
+
+#### MacOS
+
+Brew is by far the most straightforward way to install the tooling required for this workshop, and Minikube is no exception.
+
+```shell
+$ brew cask install minikube
 ```
-minikube start
+
+This will _also_ install the `kubernetes-cli` formula, which provides `kubectl`. Hooray!
+
+#### Linux
+
+Your distribution's package manager _may_ include Minikube; most likely, you will need to install it manually:
+
+```shell
+$ curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+$ sudo install minikube-linux-amd64 /usr/local/bin/minikube
 ```
-In Mac's case, there may be a need to use localkube as a bootstrapper
+
+`kubectl` it can also be installed manually, though more [mature package manager support](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-using-native-package-management) is available for many Linux flavours.
+
+```shell
+$ KUBECTL_STABLE=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt) 
+$ curl -LO https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_STABLE/bin/linux/amd64/kubectl
+$ sudo install kubectl /usr/local/bin/kubectl
+```
+
+In the case of manual installation, feel free to put the binaries anywhere you like - just don't forget to have them in your `$PATH` for ease of use.
+
+### Test it out!
+
+First, _refresh your shell session_ in order to make sure the paths and aliases are all set up. Next, test the binaries:
 
 ```
-minikube start --bootstrapper=localkube
+$ minikube version
+minikube version: v0.30.0
+
+$ kubectl version
+Client Version: version.Info{Major:"1", Minor:"12", GitVersion:"v1.12.0", [...]
 ```
 
-You will need to use minikube's docker engine by running:
+We just learned our first commands for both `minikube` and `kubectl` - congratulations!
+
+## Our first cluster
+
+Let's take a closer look at Minikube. The `status` command gives us a very brief status overview of the Minikube Kubernetes cluster:
+
 ```
-eval $(minikube docker-env)
+$ minikube status
+minikube:
+cluster:
+kubectl:
 ```
+
+All of the status fields are black because we don't actually have a cluster yet, so let's fire up our first Minikube instance! This will download a smallish ISO, perform some configuration steps, then instantiate a virtual machine. (In other words: it will take a few minutes.)
+
+```
+$ minikube start
+Starting local Kubernetes v1.10.0 cluster...
+Starting VM...
+Downloading Minikube ISO
+ 170.78 MB / 170.78 MB [============================================] 100.00% 0s
+Getting VM IP address...
+Moving files into cluster...
+Downloading kubelet v1.10.0
+Downloading kubeadm v1.10.0
+Finished Downloading kubelet v1.10.0
+Finished Downloading kubeadm v1.10.0
+Setting up certs...
+Connecting to cluster...
+Setting up kubeconfig...
+Starting cluster components...
+Kubectl is now configured to use the cluster.
+Loading cached images from config file.
+```
+
+Our status command is more interesting now:
+
+```
+$ minikube status
+minikube: Running
+cluster: Running
+kubectl: Correctly Configured: pointing to minikube-vm at 192.168.99.100
+```
+
+(The IP address may vary depending on the local network.)
+
+## Our first application
+
+Let's set up our first application: a sort of "Hello, World!" for Kubernetes. This introduces a new command: `run`.
+
+```
+$ kubectl run hello-minikube --image=k8s.gcr.io/echoserver:1.4 --port=8080
+kubectl run --generator=deployment/apps.v1beta1 is DEPRECATED and will be removed in a future version. Use kubectl create instead.
+deployment.apps/hello-minikube created
+```
+
+There's a lot of information packed into those lines, so let's break it down. First, the command line:
+
+```
+          command            container image     container name  port to expose
+          ⬇                 ⬇                  ⬇               ⬇
+$ kubectl run hello-minikube --image=k8s.gcr.io/echoserver:1.4 --port=8080
+  ⬆          ⬆                      ⬆                    ⬆
+  CLI tool    name of instance       source                container version
+```
+
+The deprecation warning is relatively new and can safely be ignored for now (we'll touch on it later).
+
+Lastly, the result of the command:
+
+```
+                resource name
+                ⬇
+deployment.apps/hello-minikube created
+⬆                             ⬆
+resource type                  action
+```
+
+There are a number of actions and resource types in Kubernetes. For now, just get a feel for the output format, as this is what using `kubectl` feels like: commands with options, and the resulting structured output.
+
+Now we'll need to a queryable endpoint available - in the Kubernetes parlance, we'll "expose a deployment":
+
+```
+$ kubectl expose deployment hello-minikube --type=NodePort
+service/hello-minikube exposed
+```
+
+Breaking that down:
+
+```
+          command           resource name
+          ⬇                ⬇
+$ kubectl expose deployment hello-minikube --type=NodePort
+  ⬆             ⬆                         ⬆
+  CLI tool       resource type              service type
+```
+
+With the notable exception of "service type", the contents of that invocation are relatively straightforward (don't worry about that last option for now).
+
+### Ask a question…
+
+Next we'll learn about a fairly common command: `get`. As the name implies, `get` allows you to make queries regarding Kubernetes _resources_.
+
+```
+$ kubectl get pod
+NAME                             READY   STATUS    RESTARTS   AGE
+hello-minikube-6c47c66d8-95vxs   1/1     Running   0          1m
+```
+
+### …get an answer
+
+Instead of explaining the previous command, let's take a look at the help pages available directly in `kubectl`. To get help about pretty much anything, just prepend "help" to your command invocation. For example:
+
+```
+$ kubectl help get pod
+Display one or many resources
+
+Prints a table of the most important information about the specified resources. [...]
+```
+
+The output has been truncated here, but you get the idea. And what about that service type from the previous invocation? Try getting some help for that, too!
+
+### Test it out!
+
+We're going to query the little echoserver application that we've deployed, but first, we need a URL. This URL is generated when we exposed the resource previously.
+
+```
+$ minikube service hello-minikube --url
+http://192.168.99.100:32521
+```
+
+We can also leverage some shell tricks:
+```
+$ curl $(minikube service hello-minikube --url)
+CLIENT VALUES:
+client_address=172.17.0.1
+command=GET
+real path=/
+query=nil
+request_version=1.1
+request_uri=http://192.168.99.100:8080/
+
+[...]
+```
+
+It works! What a glorious, modern age we live in.
+
+### And scene.
+
+As this is just a toy application, there isn't much more for us to do, so let's learn about another important command: `delete`.
+
+```
+$ kubectl delete service hello-minikube
+service "hello-minikube" deleted
+$ kubectl delete deployment hello-minikube
+deployment "hello-minikube" deleted
+```
+
+If you want to stop now and call it a day, you can also stop Minicube too - but _don't do this_ if you plan to keep going with the next section as it'll just slow us down. 🚀
+
+```
+$ minikube stop     # Info only! Don't do this now!
+Stopping local Kubernetes cluster...
+Machine stopped.
+```
+
+# Part two: Deploying an application with Kubernetes
+
+(This section is based on [Z's Minikube-Datadog tutorial](https://github.com/ziquanmiao/minikube_datadog).)
+
+The goal here is to use what we've just learned to deploy an actual application stack, consisting of a simple Flask-based web app, a Postgres database, and the Datadog agent for monitoring _everything_. You'll learn more about Kubernetes and `kubectl` as well as how to use the Datadog product with Kubernetes.
+
+## A wild Docker appears!
+
+In order to keep things simple, we're going to roll Docker images for our application and database, respectively. This next part is _very important_ so take note: we're going to use **Minikube's Docker environment**, _not_ the default environment on your machine.
+```
+$ eval $(minikube docker-env)
+```
+
+This just sets some environment variables (go ahead and run the encapsulated command yourself to see), but without these variables in our session, we'll run into confusing problems later on.
+
+Now it's time to build those images. 
+
 
 Store the API key in a kubernetes secret so its not directly in the deployment code
 ```
