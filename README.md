@@ -123,7 +123,7 @@ kubectl: Correctly Configured: pointing to minikube-vm at 192.168.99.100
 
 ## Our first application
 
-Let's set up our first application: a sort of "Hello, World!" for Kubernetes. This introduces a new command: `run`.
+Let's set up our first application: a sort of "Hello, World!" for Kubernetes. This introduces a new command: `run`. Before we go any further, it's important to note that `run` is great for testing things locally, but really isn't meant for production use - we're just using it here because it's expedient.
 
 ```
 $ kubectl run hello-minikube --image=k8s.gcr.io/echoserver:1.4 --port=8080
@@ -294,7 +294,9 @@ The Kubernetes resource name and the key don't need to be the same. As an aside,
 
 ## Configuration files
 
-During part one of this workshop we encountered an invocation that produced a [deprecation notice](#our-first-application), (which we conveniently ignored). The warning implored us to use `create` instead of `run` for setting up a new deployment. That's because the currently preferred format for new deployments is to build them from configuration files - which we'll now encounter for the first time.
+During part one of this workshop we encountered an invocation that produced a [deprecation notice](#our-first-application), (which we conveniently ignored). The warning implored us to use `create` instead of `run` for setting up a new deployment. As previously mentioned, `run` is fine for local testing - that's because it's shorthand for "take this container, apply all the defaults, and execute". In the Real World™️, `run` is _never used_.
+
+The preferred format for new deployments is to build them from configuration files. In actual operating environmments, there are a tonne of flags, preferences, keys, and settings that need to be specified everytime a deployment is touched. All of that configuration data must be captured, tracked, and revisioned in configuration files, which we'll now encounter for the first time.
 
 ### Our first configuration file
 
@@ -344,7 +346,7 @@ While we won't be diving into it, take a look at the `kubernetes/` directory. It
 
 The final configuration file is `pause.yaml`, which defines a Pause container. I'm going to be honest here: this is a bit of an arcane concept. Briefly stated, it's a container that sits around and waits (pauses) to clean things up. It also acts as a container to share namespaces (which it needs to do in order to act as a garbage collector). That shared namespace feature can be leveraged for other uses, such as auto-discovery.
 
-If you want to learn more, [Ian Lewis' explanation](https://www.ianlewis.org/en/almighty-pause-container) is both approachable and comprehensive - for now, just bookmark that and forge ahead.
+If you want to learn more, [Ian Lewis' explanation](https://www.ianlewis.org/en/almighty-pause-container) is both approachable and comprehensive - for now, just bookmark that page and forge ahead.
 
 ## Back to the deployment
 
