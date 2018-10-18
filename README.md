@@ -1,5 +1,7 @@
 # Datadog Kubernetes Workshop (Datadog Summit London 2018 edition)
 
+# https://v.gd/dd_k8s_workshop
+
 Welcome! In this workshop we're going to learn about Kubernetes and Datadog.
 
 ## Pre-requisites
