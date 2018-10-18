@@ -6,7 +6,7 @@ Welcome! In this workshop we're going to learn about Kubernetes and Datadog.
 
 ## Pre-requisites
 
-* MacOS (with [brew](https://brew.sh/) _or_ a common Linux distribution (64-bit)
+* MacOS (with [brew](https://brew.sh/)) _or_ a common Linux distribution (64-bit)
 * [VirtualBox](https://www.virtualbox.org/) preferred; other virtualisation techniques are possible but are **unsupported**.
 * [Docker](https://www.docker.com/install/) (CE is fine)
 * `git`
